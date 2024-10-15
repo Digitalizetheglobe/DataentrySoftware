@@ -161,6 +161,7 @@ router.get('/merged-data', async (req, res) => {
 router.post('/clear-data', async (req, res) => {
     try {
       // Truncate all tables to remove all data
+      //changes checking
       await ExcelData1.destroy({ truncate: true });
       await ExcelData2.destroy({ truncate: true });
       await MergedExcelData.destroy({ truncate: true });
