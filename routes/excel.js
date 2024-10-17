@@ -52,19 +52,26 @@ const processCSV = (filePath, isFirstFile) => {
       });
   });
 };
-
+// Function to insert data in chunks
+const insertInChunks = async (model, data, chunkSize = 1000) => {
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.slice(i, i + chunkSize);
+    await model.bulkCreate(chunk);
+  }
+};
 
 // Upload the two CSV files and store them in separate tables
 router.post('/upload', upload.array('files', 2), async (req, res) => {
   try {
     const [file1, file2] = req.files;
+
     // Process both CSV files
-    const data1 = await processCSV(file1.path, true); // First Excel
+    const data1 = await processCSV(file1.path, true); 
     const data2 = await processCSV(file2.path, false); // Second Excel
 
-    // Save data from each file separately
-    await ExcelData1.bulkCreate(data1);
-    await ExcelData2.bulkCreate(data2);
+    // Save data from each file in chunks to avoid memory issues
+    await insertInChunks(ExcelData1, data1);
+    await insertInChunks(ExcelData2, data2);
 
     res.status(200).json({ message: 'Files processed and data stored separately.' });
   } catch (error) {
@@ -75,72 +82,83 @@ router.post('/upload', upload.array('files', 2), async (req, res) => {
 
 
 
+
+
+// GET API to fetch all data from ExcelData1
+router.get('/data1', async (req, res) => {
+  try {
+    const data1 = await ExcelData1.findAll();
+    res.status(200).json({ message: 'ExcelData1 retrieved successfully.', data: data1 });
+  } catch (error) {
+    console.error('Error fetching data1:', error);
+    res.status(500).json({ message: 'Error fetching data1', error });
+  }
+});
+
+// GET API to fetch all data from ExcelData2
+router.get('/data2', async (req, res) => {
+  try {
+    const data2 = await ExcelData2.findAll();
+    res.status(200).json({ message: 'ExcelData2 retrieved successfully.', data: data2 });
+  } catch (error) {
+    console.error('Error fetching data2:', error);
+    res.status(500).json({ message: 'Error fetching data2', error });
+  }
+});
+
+
+
 router.post('/merge', async (req, res) => {
   try {
     // Fetch data from both tables
     const data1 = await ExcelData1.findAll();
     const data2 = await ExcelData2.findAll();
-    const uidMap = new Map();
-    data1.forEach(item => {
-      uidMap.set(item.account, {
-        account: item.account,
-        credit_ref: item.credit_ref,
-        balance: item.balance,
-        exposure: item.exposure,
-        available_balance: item.available_balance,
-        exposure_limit: item.exposure_limit,
-        ref_profit_loss: item.ref_profit_loss,
-        date_time: null, 
-        uid: null,
-        deposit: 0,
-        withdraw: 0,
-        remark: '',
-        from_to: '',
-      });
-    });
-    // Merge data from ExcelData2 using `uid` as the key
-    data2.forEach(item => {
-      const existingRow = uidMap.get(item.uid); // Match `account` from Excel 1 with `uid` from Excel 2
-      if (existingRow) {
-        // Parse the date_time using moment.js, or set to null if invalid
-        const parsedDate = moment(item.date_time, 'YYYY-MM-DD HH:mm:ss', true);
-        existingRow.date_time = parsedDate.isValid() ? parsedDate.toDate() : null;
-        
-        existingRow.uid = item.uid;
-        existingRow.deposit += item.deposit;
-        existingRow.withdraw += item.withdraw;
-        existingRow.balance += item.balance; // Update balance based on Excel 2 data
-        existingRow.remark = item.remark || '';
-        existingRow.from_to = item.from_to || '';
-      } else {
-        // If no match is found, add a new entry with only data from Excel 2
-        const parsedDate = moment(item.date_time, 'YYYY-MM-DD HH:mm:ss', true);
-        uidMap.set(item.uid, {
-          account: null, 
-          credit_ref: null,
-          balance: item.balance,
-          exposure: 0,
-          available_balance: 0,
-          exposure_limit: 0,
-          ref_profit_loss: 0,
+
+    const matchedResults = [];
+
+    // Convert data2 into a map for easy lookup by `uid`
+    const data2Map = new Map(data2.map(item => [item.uid, item]));
+
+    // Iterate through data1 and look for matching `uid` in data2Map
+    data1.forEach(item1 => {
+      const matchingData2 = data2Map.get(item1.account);
+
+      // Only merge if there is a matching `uid` in data2 for the `account` in data1
+      if (matchingData2) {
+        const parsedDate = moment(matchingData2.date_time, 'YYYY-MM-DD HH:mm:ss', true);
+
+        const mergedEntry = {
+          account: item1.account,
+          credit_ref: item1.credit_ref,
+          balance: item1.balance + matchingData2.balance, 
+          exposure: item1.exposure,
+          available_balance: item1.available_balance,
+          exposure_limit: item1.exposure_limit,
+          ref_profit_loss: item1.ref_profit_loss,
           date_time: parsedDate.isValid() ? parsedDate.toDate() : null,
-          uid: item.uid,
-          deposit: item.deposit,
-          withdraw: item.withdraw,
-          remark: item.remark || '',
-          from_to: item.from_to || '',
-        });
+          uid: matchingData2.uid,
+          deposit: matchingData2.deposit,
+          withdraw: matchingData2.withdraw,
+          remark: matchingData2.remark || '',
+          from_to: matchingData2.from_to || '',
+        };
+
+        matchedResults.push(mergedEntry);
       }
     });
-    const mergedResults = Array.from(uidMap.values());
-    await MergedExcelData.bulkCreate(mergedResults);
 
-    res.status(200).json({ message: 'Data merged successfully.', mergedData: mergedResults });
+    await MergedExcelData.destroy({ truncate: true });
+    await MergedExcelData.bulkCreate(matchedResults);
+
+    res.status(200).json({ message: 'Data merged successfully.', mergedData: matchedResults });
   } catch (error) {
     console.error('Error merging data:', error);
     res.status(500).json({ message: 'Error merging data', error });
   }
 });
+
+
+
 
 
 // GET API to fetch all merged data
@@ -157,7 +175,7 @@ router.get('/merged-data', async (req, res) => {
   }
 });
 
-
+//DELETE ALL REPORT DATA 
 router.post('/clear-data', async (req, res) => {
     try {
       // Truncate all tables to remove all data
