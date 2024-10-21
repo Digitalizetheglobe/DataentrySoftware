@@ -15,12 +15,12 @@ NewUserModel.init({
   number: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    // Removed the `unique` constraint from here
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true, // Email should be unique
     validate: {
       isEmail: true,
     },
@@ -39,7 +39,7 @@ NewUserModel.init({
   },
   user_id: {
     type: DataTypes.STRING,
-    unique: true,
+    unique: true, // User ID should be unique
     allowNull: false,
   },
   password: {
