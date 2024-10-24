@@ -7,58 +7,260 @@ const ExcelData2 = require('../models/ExcelData2');
 const MergedExcelData = require('../models/MergedExcelData');
 const router = express.Router();
 const moment = require('moment');
+const { where } = require('sequelize');
 const upload = multer({ dest: 'uploads/' });
 
-// Function to process CSV files
-const processCSV = (filePath, isFirstFile) => {
+
+
+
+// Function to process CSV data for Excel 1
+const processCSVForExcel1 = (filePath) => {
   return new Promise((resolve, reject) => {
     const results = [];
     fs.createReadStream(filePath)
       .pipe(csv())
       .on('data', (data) => {
-        const rowData = {};
-        console.log('Raw CSV Data:', data); 
-        
-        if (isFirstFile) {
-          // First file columns (Excel 1)
-          rowData.account = data['account'] || data['Account']; // Try matching both cases
-          rowData.credit_ref = data['credit_ref'] || data['Credit Ref.'];
-          rowData.balance = parseFloat(data['balance']) || 0;
-          rowData.exposure = parseFloat(data['exposure']) || 0;
-          rowData.available_balance = parseFloat(data['available_balance']) || 0;
-          rowData.exposure_limit = parseFloat(data['exposure_limit']) || 0;
-          rowData.ref_profit_loss = parseFloat(data['ref_profit_loss']) || 0;
-        } else {
-          // Second file columns (Excel 2)
-          rowData.uid = data['uid'] || data['UID'];
-          rowData.date_time = data['date_time'] || data['Date/Time'];
-          rowData.deposit = parseFloat(data['deposit']) || 0;
-          rowData.withdraw = parseFloat(data['withdraw']) || 0;
-          rowData.balance = parseFloat(data['balance']) || 0;
-          rowData.remark = data['remark'] || data['Remark'] || '';
-          rowData.from_to = data['from_to'] || data['From/To'] || '';
-        }
-        
-        console.log('Processed Row Data:', rowData); 
+        const rowData = {
+          account: data['account'] || data['Account'],
+          credit_ref: data['credit_ref'] || data['Credit Ref.'],
+          balance: parseFloat(data['balance']) || 0,
+          exposure: parseFloat(data['exposure']) || 0,
+          available_balance: parseFloat(data['available_balance']) || 0,
+          exposure_limit: parseFloat(data['exposure_limit']) || 0,
+          ref_profit_loss: parseFloat(data['ref_profit_loss']) || 0,
+        };
         results.push(rowData);
       })
       .on('end', () => {
-        console.log('All data processed:', results); 
         resolve(results);
       })
       .on('error', (error) => {
-        console.error('Error reading CSV file:', error);
         reject(error);
       });
   });
 };
-// Function to insert data in chunks
+
+// Function to process CSV data for Excel 2
+const processCSVForExcel2 = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const results = [];
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (data) => {
+        const rowData = {
+          uid: data['uid'] || data['UID'],
+          date_time: data['date_time'] || data['Date/Time'],
+          deposit: parseFloat(data['deposit']) || 0,
+          withdraw: parseFloat(data['withdraw']) || 0,
+          balance: parseFloat(data['balance']) || 0,
+          remark: data['remark'] || data['Remark'] || '',
+          from_to: data['from_to'] || data['From/To'] || '',
+        };
+        results.push(rowData);
+      })
+      .on('end', () => {
+        resolve(results);
+      })
+      .on('error', (error) => {
+        reject(error);
+      });
+  });
+};
+
+// Function to insert data in chunks to avoid memory issues
 const insertInChunks = async (model, data, chunkSize = 1000) => {
   for (let i = 0; i < data.length; i += chunkSize) {
     const chunk = data.slice(i, i + chunkSize);
     await model.bulkCreate(chunk);
   }
 };
+
+
+
+// Function to process and update CSV data for Excel 1
+const processCSVForUpdateExcel1 = async (filePath) => {
+  const results = [];
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (data) => {
+        results.push({
+          account: data['account'] || data['Account'],
+          credit_ref: data['credit_ref'] || data['Credit Ref.'],
+          balance: parseFloat(data['balance']) || 0,
+          exposure: parseFloat(data['exposure']) || 0,
+          available_balance: parseFloat(data['available_balance']) || 0,
+          exposure_limit: parseFloat(data['exposure_limit']) || 0,
+          ref_profit_loss: parseFloat(data['ref_profit_loss']) || 0,
+        });
+      })
+      .on('end', async () => {
+        for (const row of results) {
+          // Find existing entry by account, and update or create if not found
+          await ExcelData1.upsert(row, {
+            where: { account: row.account },
+          });
+        }
+        resolve();
+      })
+      .on('error', (error) => {
+        reject(error);
+      });
+  });
+};
+
+//Function to Upset data in to the database 
+const upsertData = async (data, model, uniqueFeilds) =>{
+  for (const entry of data){
+    const whereClause ={};
+    uniqueFeilds.forEach(feilds => {
+      whereClause[feild] = entry[feild];
+    });
+    const existingRecord = await model.findOne({where: whereClause});
+    if(existingRecord){
+      await existingRecord.update(entry);
+
+    }else{
+      await model.create(entry);
+    }
+  }
+};
+
+// PUT API to update or add data from Excel 1
+
+router.put('/upload1', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload a file.' });
+    }
+
+    await processCSVForUpdateExcel1(file.path);
+    fs.unlinkSync(file.path); // Clean up the file after processing
+
+    res.status(200).json({ message: 'Excel 1 data updated successfully.' });
+  } catch (error) {
+    console.error('Error updating Excel 1 data:', error);
+    res.status(500).json({ message: 'Error updating Excel 1 data.', error });
+  }
+});
+
+
+// PUT API to update or add data from Excel 2
+router.put('/excel/upload2', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload a file.' });
+    }
+
+    const data2 = await processCSVForExcel2(file.path);
+    await upsertData(data2, ExcelData2, ['uid']);
+
+    // Cleanup: Remove the uploaded file after processing
+    fs.unlinkSync(file.path);
+
+    res.status(200).json({ message: 'Excel 2 data updated or added successfully.' });
+  } catch (error) {
+    console.error('Error processing Excel 2:', error);
+    res.status(500).json({ message: 'Error processing Excel 2', error });
+  }
+});
+
+
+// API to upload and process Excel 1
+router.post('/excel/upload1', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload a file.' });
+    }
+
+    const data1 = await processCSVForExcel1(file.path);
+    await insertInChunks(ExcelData1, data1);
+
+    // Cleanup: Remove the uploaded file after processing
+    fs.unlinkSync(file.path);
+
+    res.status(200).json({ message: 'Excel 1 processed and data stored successfully.' });
+  } catch (error) {
+    console.error('Error processing Excel 1:', error);
+    res.status(500).json({ message: 'Error processing Excel 1', error });
+  }
+});
+
+// API to upload and process Excel 2
+router.post('/excel/upload2', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload a file.' });
+    }
+
+    const data2 = await processCSVForExcel2(file.path);
+    await insertInChunks(ExcelData2, data2);
+
+    // Cleanup: Remove the uploaded file after processing
+    fs.unlinkSync(file.path);
+
+    res.status(200).json({ message: 'Excel 2 processed and data stored successfully.' });
+  } catch (error) {
+    console.error('Error processing Excel 2:', error);
+    res.status(500).json({ message: 'Error processing Excel 2', error });
+  }
+});
+
+
+
+
+
+// Function to process CSV files
+// const processCSV = (filePath, isFirstFile) => {
+//   return new Promise((resolve, reject) => {
+//     const results = [];
+//     fs.createReadStream(filePath)
+//       .pipe(csv())
+//       .on('data', (data) => {
+//         const rowData = {};
+//         console.log('Raw CSV Data:', data); 
+        
+//         if (isFirstFile) {
+//           rowData.account = data['account'] || data['Account']; // Try matching both cases
+//           rowData.credit_ref = data['credit_ref'] || data['Credit Ref.'];
+//           rowData.balance = parseFloat(data['balance']) || 0;
+//           rowData.exposure = parseFloat(data['exposure']) || 0;
+//           rowData.available_balance = parseFloat(data['available_balance']) || 0;
+//           rowData.exposure_limit = parseFloat(data['exposure_limit']) || 0;
+//           rowData.ref_profit_loss = parseFloat(data['ref_profit_loss']) || 0;
+//         } else {
+//           rowData.uid = data['uid'] || data['UID'];
+//           rowData.date_time = data['date_time'] || data['Date/Time'];
+//           rowData.deposit = parseFloat(data['deposit']) || 0;
+//           rowData.withdraw = parseFloat(data['withdraw']) || 0;
+//           rowData.balance = parseFloat(data['balance']) || 0;
+//           rowData.remark = data['remark'] || data['Remark'] || '';
+//           rowData.from_to = data['from_to'] || data['From/To'] || '';
+//         }
+        
+//         console.log('Processed Row Data:', rowData); 
+//         results.push(rowData);
+//       })
+//       .on('end', () => {
+//         console.log('All data processed:', results); 
+//         resolve(results);
+//       })
+//       .on('error', (error) => {
+//         console.error('Error reading CSV file:', error);
+//         reject(error);
+//       });
+//   });
+// };
+// const insertInChunks = async (model, data, chunkSize = 1000) => {
+//   for (let i = 0; i < data.length; i += chunkSize) {
+//     const chunk = data.slice(i, i + chunkSize);
+//     await model.bulkCreate(chunk);
+//   }
+// };
 
 // Upload the two CSV files and store them in separate tables
 router.post('/upload', upload.array('files', 2), async (req, res) => {

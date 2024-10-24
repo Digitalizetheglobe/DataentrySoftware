@@ -20,7 +20,7 @@ NewUserModel.init({
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true, // Email should be unique
+    // unique: true, 
     validate: {
       isEmail: true,
     },
@@ -39,7 +39,7 @@ NewUserModel.init({
   },
   user_id: {
     type: DataTypes.STRING,
-    unique: true, // User ID should be unique
+    // unique: true, 
     allowNull: false,
   },
   password: {

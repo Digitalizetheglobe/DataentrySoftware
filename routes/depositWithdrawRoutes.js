@@ -9,7 +9,6 @@ const { Op } = require('sequelize');
 // Setup multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// POST API to add deposit/withdrawal entry
 router.post('/add-entry', async (req, res) => {
   try {
     const { player_id, branch_id, utr_id, amount, bank_name, remark } = req.body;
@@ -33,7 +32,7 @@ router.post('/add-entry', async (req, res) => {
       amount,
       bank_name,
       remark: remark || '',
-      date: new Date(), // Automatically store the current date
+      date: new Date(), 
     });
 
     res.status(201).json({ message: 'Entry added successfully.', data: newEntry });
@@ -78,7 +77,7 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
         if (!player_id || !branch_id || !utr_id || !amount || !bank_name) {
           console.log('Validation failed for entry:', entry);
           results.push({ utr_id: utr_id || 'N/A', status: 'Skipped', message: 'Missing required fields.' });
-          continue; // Skip this entry if validation fails
+          continue; 
         }
   
         // Check if UTR already exists
@@ -130,42 +129,47 @@ router.get('/entries', async (req, res) => {
 
 
 
+
 // bank reports
 router.get('/entries/report', async (req, res) => {
-    try {
-        const { startDate, endDate, bank_name } = req.query;
+  try {
+      const { startDate, endDate, bank_name } = req.query;
 
-        // Validate required fields
-        if (!startDate || !endDate || !bank_name) {
-            return res.status(400).json({ message: 'Start date, end date, and bank name are required.' });
-        }
+      // Validate required fields
+      if (!startDate || !endDate || !bank_name) {
+          return res.status(400).json({ message: 'Start date, end date, and bank name are required.' });
+      }
 
-        console.log('Start Date:', new Date(startDate));
-        console.log('End Date:', new Date(endDate));
-        console.log('Bank Name:', bank_name);
+      console.log('Start Date:', new Date(startDate));
+      console.log('End Date:', new Date(endDate));
+      console.log('Bank Name:', bank_name);
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); // Adjust end date to include the entire day
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); 
 
-        const entries = await DepositWithdrawModel.findAll({
-            where: {
-                bank_name,
-                createdAt: {
-                    [Op.between]: [start, end],
-                },
-            },
-            order: [['createdAt', 'DESC']],
-        });
+      const entries = await DepositWithdrawModel.findAll({
+          where: {
+              bank_name: {
+                  [Op.like]: `%${bank_name}%`, 
+              },
+              createdAt: {
+                  [Op.between]: [start, end],
+              },
+          },
+          order: [['createdAt', 'DESC']],
+      });
 
-        const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
+      console.log('Fetched Entries:', entries);
+      const totalAmount = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
-        res.status(200).json({ message: 'Report generated successfully.', data: entries, totalAmount });
-    } catch (error) {
-        console.error('Error generating report:', error);
-        res.status(500).json({ message: 'Error generating report.', error: error.message });
-    }
+      res.status(200).json({ message: 'Report generated successfully.', data: entries, totalAmount });
+  } catch (error) {
+      console.error('Error generating report:', error);
+      res.status(500).json({ message: 'Error generating report.', error: error.message });
+  }
 });
+
 
   
   
@@ -181,10 +185,10 @@ router.get('/branch-activities', async (req, res) => {
 
       const playerActivities = await Promise.all(players.map(async (player) => {
         const entries = await DepositWithdrawModel.findAll({ where: { user_id: player.user_id } });
-        return { player, entries }; // Combine player info with their entries
+        return { player, entries }; 
       }));
 
-      return { branch, playerActivities }; // Return activities for this branch
+      return { branch, playerActivities }; 
     }));
 
     res.status(200).json({ message: 'Branch activities retrieved successfully.', data: activities });
