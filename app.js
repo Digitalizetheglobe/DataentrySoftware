@@ -15,14 +15,13 @@ const withdrawalReportRoutes = require('./routes/withdrawalReportRoutes');
 const reconciliationRoutes = require ('./routes/reconciliationRoutes');
 const depositReconciliationRoutes = require('./routes/depositReconciliationRoutes');
 const branchRoutes = require('./routes/branch');
-
+const interbankTransferRoutes = require('./routes/interbankTransfer');
 const app = express();
 
 // Enable CORS for all routes and allow requests from http://localhost:3000
 app.use(cors({ origin: 'http://localhost:3000' }));
 
 app.use(express.json());
-
 // Register all the routes
 // Branch routes for registration and login
 app.use('/api/branch', branchRoutes);
@@ -42,6 +41,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/withdrawal-report', withdrawalReportRoutes);
 app.use('/api/withdrawal',reconciliationRoutes);
 app.use('/api/deposit', depositReconciliationRoutes);
+app.use('/api/interbank-transfer', interbankTransferRoutes);
 
 const PORT = process.env.PORT || 8000;
 
