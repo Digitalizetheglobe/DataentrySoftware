@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const InterBankTransfer = require('../models/InterBankTransfer'); // Adjust this model import path as per your project structure
+const InterBankTransfer = require('../models/InterBankTransfer'); 
 
-// POST: Create a new interbank transfer entry
+
+
 router.post('/add-transfer', async (req, res) => {
   const { sender_bank, amount, receiving_bank, utr_id, branch_id , date} = req.body;
 
@@ -26,7 +27,7 @@ router.post('/add-transfer', async (req, res) => {
 // GET: Retrieve all interbank transfers
 router.get('/transfers', async (req, res) => {
   try {
-    const transfers = await InterBankTransfer.findAll(); // Retrieves all transfer entries
+    const transfers = await InterBankTransfer.findAll(); 
     res.status(200).json({ message: 'Transfers retrieved successfully', data: transfers });
   } catch (error) {
     console.error('Error fetching transfers:', error);
