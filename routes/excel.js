@@ -78,36 +78,101 @@ const insertInChunks = async (model, data, chunkSize = 1000) => {
 
 
 // Function to process and update CSV data for Excel 1
+// const processCSVForUpdateExcel1 = async (filePath) => {
+//   const results = [];
+//   return new Promise((resolve, reject) => {
+//     fs.createReadStream(filePath)
+//       .pipe(csv())
+//       .on('data', (data) => {
+//         results.push({
+//           account: data['account'] || data['Account'],
+//           credit_ref: data['credit_ref'] || data['Credit Ref.'],
+//           balance: parseFloat(data['balance']) || 0,
+//           exposure: parseFloat(data['exposure']) || 0,
+//           available_balance: parseFloat(data['available_balance']) || 0,
+//           exposure_limit: parseFloat(data['exposure_limit']) || 0,
+//           ref_profit_loss: parseFloat(data['ref_profit_loss']) || 0,
+//         });
+//       })
+//       .on('end', async () => {
+//         for (const row of results) {
+//           await ExcelData1.upsert(row, {
+//             where: { account: row.account },
+//           });
+//         }
+//         resolve();
+//       })
+//       .on('error', (error) => {
+//         reject(error);
+//       });
+//   });
+// };
+
 const processCSVForUpdateExcel1 = async (filePath) => {
-  const results = [];
   return new Promise((resolve, reject) => {
+    const data = [];
+
     fs.createReadStream(filePath)
       .pipe(csv())
-      .on('data', (data) => {
-        results.push({
-          account: data['account'] || data['Account'],
-          credit_ref: data['credit_ref'] || data['Credit Ref.'],
-          balance: parseFloat(data['balance']) || 0,
-          exposure: parseFloat(data['exposure']) || 0,
-          available_balance: parseFloat(data['available_balance']) || 0,
-          exposure_limit: parseFloat(data['exposure_limit']) || 0,
-          ref_profit_loss: parseFloat(data['ref_profit_loss']) || 0,
-        });
+      .on('data', (row) => {
+        // Adjust to map both "account" and "Account" keys to a single "account" field
+        const rowData = {
+          account: row['account'] || row['Account'], // Check both lowercase and uppercase
+          credit_ref: row['credit_ref'] || row['Credit Ref.'],
+          balance: parseFloat(row['balance']) || 0,
+          exposure: parseFloat(row['exposure']) || 0,
+          available_balance: parseFloat(row['available_balance']) || 0,
+          exposure_limit: parseFloat(row['exposure_limit']) || 0,
+          ref_profit_loss: parseFloat(row['ref_profit_loss']) || 0,
+          status: row['Status'] || 'Active',
+        };
+
+        if (!rowData.account) {
+          console.warn('Skipping row with missing account:', row);
+          return; // Skip rows without account data
+        }
+
+        data.push(rowData);
       })
       .on('end', async () => {
-        for (const row of results) {
-          // Find existing entry by account, and update or create if not found
-          await ExcelData1.upsert(row, {
-            where: { account: row.account },
-          });
+        try {
+          for (const row of data) {
+            const existingEntry = await ExcelData1.findOne({ where: { account: row.account } });
+            
+            if (existingEntry) {
+              // Update the existing entry
+              await existingEntry.update(row);
+            } else {
+              // Insert a new entry if account is not found
+              await ExcelData1.create(row);
+            }
+          }
+          resolve();
+        } catch (error) {
+          console.error('Error processing CSV:', error);
+          reject(error);
         }
-        resolve();
       })
       .on('error', (error) => {
+        console.error('Error reading CSV file:', error);
         reject(error);
       });
   });
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //Function to Upset data in to the database 
 const upsertData = async (data, model, uniqueFeilds) =>{
