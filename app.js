@@ -19,7 +19,8 @@ const interbankTransferRoutes = require('./routes/interbankTransfer');
 const app = express();
 
 // Enable CORS for all routes and allow requests from http://localhost:3000
-app.use(cors({ origin: 'http://localhost:3000' }));
+// app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: '*' }));
 
 app.use(express.json());
 // Register all the routes
