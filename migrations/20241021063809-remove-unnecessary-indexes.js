@@ -6,3 +6,5 @@ module.exports = {
     await queryInterface.addIndex('Users', ['field_name']);
   }
 };
+
+// ksaasl
