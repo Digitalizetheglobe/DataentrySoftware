@@ -159,21 +159,7 @@ const processCSVForUpdateExcel1 = async (filePath) => {
       });
   });
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// -------------------------------------------------------------------------------------------
 //Function to Upset data in to the database 
 const upsertData = async (data, model, uniqueFeilds) =>{
   for (const entry of data){

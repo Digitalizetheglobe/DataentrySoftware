@@ -42,6 +42,31 @@ router.post('/add-entry', async (req, res) => {
   }
 });
 
+
+
+
+// DELETE API to delete an entry by ID
+router.delete('/delete-entry/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if the entry exists
+    const entry = await DepositWithdrawModel.findByPk(id);
+    if (!entry) {
+      return res.status(404).json({ message: 'Entry not found.' });
+    }
+
+    // Delete the entry
+    await entry.destroy();
+    res.status(200).json({ message: 'Entry deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting entry:', error);
+    res.status(500).json({ message: 'Error deleting entry.', error });
+  }
+});
+
+
+
 // POST API to upload an Excel file and add entries
 router.post('/upload-excel', upload.single('file'), async (req, res) => {
     try {
