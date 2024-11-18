@@ -13,45 +13,39 @@ router.get('/deposit-reconciliation-report', async (req, res) => {
             return res.status(400).json({ message: 'Start date and end date are required.' });
         }
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        const start = new Date(`${startDate}T00:00:00Z`);
+        const end = new Date(`${endDate}T23:59:59Z`);
 
-        // Fetch manual deposit data within the date range
+        // Fetch manual deposit data
         const manualData = await DepositWithdrawModel.findAll({
-            where: {
-                createdAt: {
-                    [Op.between]: [start, end],
-                },
-            },
+            where: { createdAt: { [Op.between]: [start, end] } },
         });
 
-        // Fetch Excel deposit data within the date range
+        // Fetch Excel deposit data
         const excelData = await ExcelData2.findAll({
-            where: {
-                updatedAt: {
-                    [Op.between]: [start, end],
-                },
-            },
+            where: { updatedAt: { [Op.between]: [start, end] } },
         });
 
-        // Map data for easier comparison
+        // Log to verify fetched data
+        console.log('Manual Data:', manualData);
+        console.log('Excel Data:', excelData);
+
+        // Map Excel data
         const excelMap = new Map();
         excelData.forEach(entry => {
-            const key = `${entry.uid}-${entry.branch_id}-${Math.abs(entry.deposit)}`; // Use absolute for deposits
+            const key = `${entry.uid}-${parseFloat(entry.deposit).toFixed(2)}`;
             excelMap.set(key, entry);
         });
 
         const discrepancies = [];
         const matchedRecords = [];
 
-        // Compare manual data against the Excel data
+        // Compare manual data
         manualData.forEach(entry => {
-            const key = `${entry.player_id}-${entry.branch_id}-${entry.amount}`;
+            const key = `${entry.player_id}-${parseFloat(entry.amount).toFixed(2)}`;
             const excelEntry = excelMap.get(key);
 
             if (excelEntry) {
-                // If a match is found, record it as matched
                 matchedRecords.push({
                     player_id: entry.player_id,
                     amount: entry.amount,
@@ -59,10 +53,8 @@ router.get('/deposit-reconciliation-report', async (req, res) => {
                     date: entry.createdAt,
                     matched: true,
                 });
-                // Remove the matched entry from the excelMap to keep track of unmatched Excel entries
-                excelMap.delete(key);
+                excelMap.delete(key); // Remove matched entry
             } else {
-                // If no match is found, record it as a discrepancy
                 discrepancies.push({
                     player_id: entry.player_id,
                     amount: entry.amount,
@@ -74,12 +66,12 @@ router.get('/deposit-reconciliation-report', async (req, res) => {
             }
         });
 
-        // Remaining entries in excelMap are unmatched Excel entries
+        // Handle unmatched Excel entries
         excelMap.forEach((excelEntry) => {
             discrepancies.push({
                 player_id: excelEntry.uid,
                 amount: excelEntry.deposit,
-                branch_id: excelEntry.branch_id,
+                branch_id: null,
                 date: excelEntry.updatedAt,
                 matched: false,
                 reason: 'Excel entry not found in Manual',
@@ -88,7 +80,7 @@ router.get('/deposit-reconciliation-report', async (req, res) => {
 
         // Calculate totals
         const totalManualAmount = manualData.reduce((sum, entry) => sum + entry.amount, 0);
-        const totalExcelAmount = excelData.reduce((sum, entry) => sum + Math.abs(entry.deposit), 0); // Ensure positive totals
+        const totalExcelAmount = excelData.reduce((sum, entry) => sum + Math.abs(entry.deposit), 0);
 
         res.status(200).json({
             message: 'Deposit Reconciliation report generated successfully.',
@@ -104,5 +96,6 @@ router.get('/deposit-reconciliation-report', async (req, res) => {
         res.status(500).json({ message: 'Error generating deposit reconciliation report.', error: error.message });
     }
 });
+
 
 module.exports = router;
