@@ -16,6 +16,7 @@ const reconciliationRoutes = require ('./routes/reconciliationRoutes');
 const depositReconciliationRoutes = require('./routes/depositReconciliationRoutes');
 const branchRoutes = require('./routes/branch');
 const interbankTransferRoutes = require('./routes/interbankTransfer');
+const expenseRoutes = require('./routes/expenseRoutes');
 const app = express();
 
 // Enable CORS for all routes and allow requests from http://localhost:3000
@@ -43,6 +44,7 @@ app.use('/api/withdrawal-report', withdrawalReportRoutes);
 app.use('/api/withdrawal',reconciliationRoutes);
 app.use('/api/deposit', depositReconciliationRoutes);
 app.use('/api/interbank-transfer', interbankTransferRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 const PORT = process.env.PORT || 8000;
 
