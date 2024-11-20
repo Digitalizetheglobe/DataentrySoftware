@@ -8,7 +8,7 @@ PlayerModel.init({
   player_id: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
   },
   branch_id: {
     type: DataTypes.STRING,

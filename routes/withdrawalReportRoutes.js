@@ -1,7 +1,45 @@
 const express = require('express');
+const multer = require('multer');
 const WithdrawalReportModel = require('../models/WithdrawalReportModel');
 const { Op } = require('sequelize');
 const router = express.Router();
+const fs = require('fs');
+const xlsx = require('xlsx'); 
+
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
+
+// Bulk Upload Endpoint
+// Bulk Upload Endpoint
+router.post('/bulk-upload', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    console.log("Uploaded file details:", file);
+
+    if (!file) {
+      return res.status(400).json({ message: 'Please upload an Excel file.' });
+    }
+
+    const workbook = xlsx.readFile(file.path);
+    console.log("Workbook content:", workbook);
+
+    const sheetName = workbook.SheetNames[0];
+    console.log("Sheet Name:", sheetName);
+
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    console.log("Parsed Sheet Data:", sheetData);
+
+    if (sheetData.length === 0) {
+      return res.status(400).json({ message: "No valid data found in the file." });
+    }
+
+    res.status(200).json({ message: "File processed successfully.", data: sheetData });
+  } catch (error) {
+    console.error("Error processing file:", error);
+    return res.status(500).json({ message: "Error processing file.", error });
+  }
+});
+
 
 // POST API to add a new withdrawal entry
 router.post('/add-entry', async (req, res) => {

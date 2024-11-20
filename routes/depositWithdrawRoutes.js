@@ -42,9 +42,6 @@ router.post('/add-entry', async (req, res) => {
   }
 });
 
-
-
-
 // DELETE API to delete an entry by ID
 router.delete('/delete-entry/:id', async (req, res) => {
   try {
@@ -64,8 +61,6 @@ router.delete('/delete-entry/:id', async (req, res) => {
     res.status(500).json({ message: 'Error deleting entry.', error });
   }
 });
-
-
 
 // POST API to upload an Excel file and add entries
 router.post('/upload-excel', upload.single('file'), async (req, res) => {
@@ -194,10 +189,6 @@ router.get('/entries/report', async (req, res) => {
       res.status(500).json({ message: 'Error generating report.', error: error.message });
   }
 });
-
-
-  
-  
 
 // GET API to fetch all activities by branch
 router.get('/branch-activities', async (req, res) => {

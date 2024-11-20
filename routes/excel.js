@@ -161,21 +161,60 @@ const processCSVForUpdateExcel1 = async (filePath) => {
 };
 // -------------------------------------------------------------------------------------------
 //Function to Upset data in to the database 
-const upsertData = async (data, model, uniqueFeilds) =>{
-  for (const entry of data){
-    const whereClause ={};
-    uniqueFeilds.forEach(feilds => {
-      whereClause[feild] = entry[feild];
-    });
-    const existingRecord = await model.findOne({where: whereClause});
-    if(existingRecord){
-      await existingRecord.update(entry);
+// const upsertData = async (data, model, uniqueFeilds) =>{
+//   for (const entry of data){
+//     const whereClause ={};
+//     uniqueFeilds.forEach(feilds => {
+//       whereClause[feild] = entry[feild];
+//       console.log(item.feild);
+//     });
+//     const existingRecord = await model.findOne({where: whereClause});
+//     if(existingRecord){
+//       await existingRecord.update(entry);
 
-    }else{
-      await model.create(entry);
+//     }else{
+//       await model.create(entry);
+//     }
+//   }
+// };
+
+
+
+
+// Function to upsert data into the database
+const upsertData = async (data, model, uniqueFields) => {
+  for (const entry of data) {
+    try {
+      // Construct the where clause for the unique fields
+      const whereClause = {};
+      uniqueFields.forEach((field) => {
+        if (!entry[field]) {
+          throw new Error(`Missing unique field '${field}' in entry: ${JSON.stringify(entry)}`);
+        }
+        whereClause[field] = entry[field];
+      });
+
+      console.log("Where Clause:", whereClause); // Debug: Log the whereClause
+
+      // Check if a record with the unique field(s) exists
+      const existingRecord = await model.findOne({ where: whereClause });
+
+      if (existingRecord) {
+        // Update the existing record
+        await existingRecord.update(entry);
+        console.log("Updated Existing Record:", whereClause, "With Data:", entry);
+      } else {
+        // Create a new record if it doesn't exist
+        await model.create(entry);
+        console.log("Created New Record:", entry);
+      }
+    } catch (error) {
+      console.error("Error in upsert operation:", error.message, "Entry:", entry);
     }
   }
 };
+
+
 
 // PUT API to update or add data from Excel 1
 
