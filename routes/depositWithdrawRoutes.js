@@ -62,74 +62,61 @@ router.delete('/delete-entry/:id', async (req, res) => {
   }
 });
 
+
 // POST API to upload an Excel file and add entries
 router.post('/upload-excel', upload.single('file'), async (req, res) => {
-    try {
-      console.log('Received a request to upload an Excel file.');
-  
-      // Check if file is uploaded
-      if (!req.file) {
-        console.log('No file uploaded.');
-        return res.status(400).json({ message: 'Please upload an Excel file.' });
-      }
-  
-      console.log('File uploaded:', req.file.path);
-  
-      // Read the uploaded Excel file
-      const workbook = XLSX.readFile(req.file.path);
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-  
-      console.log('Reading data from sheet:', sheetName);
-  
-      // Convert the sheet to JSON
-      const data = XLSX.utils.sheet_to_json(sheet);
-      console.log('Parsed data from Excel:', data);
-  
-      // Loop through each entry and add it to the database
-      const results = [];
-      for (const entry of data) {
-        const { player_id, branch_id, utr_id, amount, bank_name, remark } = entry;
-  
-        console.log('Processing entry:', entry);
-  
-        // Validate required fields
-        if (!player_id || !branch_id || !utr_id || !amount || !bank_name) {
-          console.log('Validation failed for entry:', entry);
-          results.push({ utr_id: utr_id || 'N/A', status: 'Skipped', message: 'Missing required fields.' });
-          continue; 
-        }
-  
-        // Check if UTR already exists
-        const existingEntry = await DepositWithdrawModel.findOne({ where: { utr_id } });
-        if (existingEntry) {
-          console.log(`UTR ID ${utr_id} already exists. Skipping entry.`);
-          results.push({ utr_id, status: 'Skipped', message: 'UTR ID already exists.' });
-          continue;
-        }
-  
-        // Create the entry in the DepositWithdrawModel
-        await DepositWithdrawModel.create({
-          player_id,
-          branch_id,
-          utr_id,
-          amount,
-          bank_name,
-          remark: remark || '',
-          date: new Date(),
-        });
-  
-        console.log(`UTR ID ${utr_id} added successfully.`);
-        results.push({ utr_id, status: 'Added' });
-      }
-  
-      console.log('All entries processed. Returning response.');
-      res.status(201).json({ message: 'Entries processed successfully.', results });
-    } catch (error) {
-      console.error('Error processing Excel file:', error);
-      res.status(500).json({ message: 'Error processing Excel file.', error });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload an Excel file.' });
     }
-  });
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
+
+    const results = [];
+    const validEntries = [];
+
+    for (const entry of data) {
+      const { player_id, branch_id, utr_id, amount, bank_name, remark } = entry;
+
+      if (!player_id || !branch_id || !utr_id || !amount || !bank_name) {
+        results.push({ utr_id: utr_id || 'N/A', status: 'Skipped', message: 'Missing required fields.' });
+        continue;
+      }
+
+      const existingEntry = await DepositWithdrawModel.findOne({ where: { utr_id } });
+      if (existingEntry) {
+        results.push({ utr_id, status: 'Skipped', message: 'UTR ID already exists.' });
+        continue;
+      }
+
+      validEntries.push({
+        player_id,
+        branch_id,
+        utr_id,
+        amount,
+        bank_name,
+        remark: remark || '',
+        date: new Date(),
+      });
+
+      results.push({ utr_id, status: 'Pending' }); // Initially mark as pending
+    }
+
+    // Insert all valid entries
+    if (validEntries.length > 0) {
+      await DepositWithdrawModel.bulkCreate(validEntries);
+      validEntries.forEach((entry, index) => (results[index].status = 'Added')); // Update statuses
+    }
+
+    res.status(201).json({ message: 'Entries processed successfully.', results });
+  } catch (error) {
+    console.error('Error processing Excel file:', error);
+    res.status(500).json({ message: 'Error processing Excel file.', error });
+  }
+});
+
   
 
 // GET API to fetch all entries

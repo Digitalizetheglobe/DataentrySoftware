@@ -10,35 +10,70 @@ const xlsx = require('xlsx');
 const upload = multer({ dest: 'uploads/' });
 
 // Bulk Upload Endpoint
-// Bulk Upload Endpoint
 router.post('/bulk-upload', upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
-    console.log("Uploaded file details:", file);
 
     if (!file) {
       return res.status(400).json({ message: 'Please upload an Excel file.' });
     }
 
+    // Read the uploaded file
     const workbook = xlsx.readFile(file.path);
-    console.log("Workbook content:", workbook);
-
     const sheetName = workbook.SheetNames[0];
-    console.log("Sheet Name:", sheetName);
-
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    console.log("Parsed Sheet Data:", sheetData);
 
     if (sheetData.length === 0) {
-      return res.status(400).json({ message: "No valid data found in the file." });
+      return res.status(400).json({ message: 'No valid data found in the file.' });
     }
 
-    res.status(200).json({ message: "File processed successfully.", data: sheetData });
+    console.log('Parsed Data:', sheetData);
+
+    // Validate and process each row
+    const results = [];
+    for (const entry of sheetData) {
+      const { user_id, amount, bank, branch_id, remark } = entry;
+
+      // Check for missing fields
+      if (!user_id || !amount || !bank || !branch_id) {
+        results.push({ user_id: user_id || 'N/A', status: 'Skipped', reason: 'Missing required fields' });
+        continue;
+      }
+
+      // Check for duplicate entries in the database
+      const existingEntry = await WithdrawalReportModel.findOne({
+        where: { user_id, amount, bank, branch_id },
+      });
+
+      if (existingEntry) {
+        results.push({ user_id, status: 'Skipped', reason: 'Duplicate entry' });
+        continue;
+      }
+
+      // Insert new entry into the database
+      await WithdrawalReportModel.create({
+        user_id,
+        amount,
+        bank,
+        branch_id,
+        remark: remark || '',
+        date: new Date(),
+      });
+
+      results.push({ user_id, status: 'Added' });
+    }
+
+    res.status(201).json({
+      message: 'Bulk upload processed successfully.',
+      results,
+    });
   } catch (error) {
-    console.error("Error processing file:", error);
-    return res.status(500).json({ message: "Error processing file.", error });
+    console.error('Error processing file:', error);
+    return res.status(500).json({ message: 'Error processing file.', error });
   }
 });
+
+
 
 
 // POST API to add a new withdrawal entry

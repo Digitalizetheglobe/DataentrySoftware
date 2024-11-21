@@ -182,6 +182,27 @@ const processCSVForUpdateExcel1 = async (filePath) => {
 
 
 // Function to upsert data into the database
+// const upsertData = async (data, model, uniqueFields) => {
+//   for (const entry of data) {
+//     const whereClause = {};
+    
+//     // Use uniqueFields (corrected typo) to build the whereClause
+//     uniqueFields.forEach((field) => {
+//       whereClause[field] = entry[field]; // Corrected the typo
+//     });
+
+//     console.log('Where Clause:', whereClause); // Debugging
+
+//     const existingRecord = await model.findOne({ where: whereClause });
+//     if (existingRecord) {
+//       await existingRecord.update(entry); // Update existing record
+//     } else {
+//       await model.create(entry); // Create new record
+//     }
+//   }
+// };
+
+
 const upsertData = async (data, model, uniqueFields) => {
   for (const entry of data) {
     try {
@@ -213,7 +234,6 @@ const upsertData = async (data, model, uniqueFields) => {
     }
   }
 };
-
 
 
 // PUT API to update or add data from Excel 1

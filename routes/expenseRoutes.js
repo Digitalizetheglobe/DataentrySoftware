@@ -2,7 +2,7 @@ const express = require('express');
 const Expense = require('../models/Expense'); 
 const router = express.Router();
 
-// Create a new expense
+// Create a new expense /api/expenses/add-expense
 router.post('/add-expense', async (req, res) => {
   try {
     const { type_of_expense, amount, bank_name, date, remark, name } = req.body;

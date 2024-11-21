@@ -19,24 +19,19 @@ const interbankTransferRoutes = require('./routes/interbankTransfer');
 const expenseRoutes = require('./routes/expenseRoutes');
 const app = express();
 
-// Enable CORS for all routes and allow requests from http://localhost:3000
 // app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(cors({ origin: '*' }));
-
 app.use(express.json());
-// Register all the routes
-// Branch routes for registration and login
 app.use('/api/branch', branchRoutes);
-// // Example of using the auth middleware for a protected route
 // app.get('/api/protected', verifyToken, (req, res) => {
 //   res.status(200).json({ message: 'This is a protected route', branch_id: req.branch_id });
 // });
-
+// nwe
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/excel', excelRoutes); 
 app.use('/api/users', userRoutes);
-app.use('/api/new-users', newUserRoutes);
+app.use('/api/new-users', newUserRoutes); 
 app.use('/api/deposit-withdraw', depositWithdrawRoutes);
 app.use('/api/players', playerRoutes); 
 app.use('/api/admin', adminRoutes); 
@@ -59,3 +54,4 @@ sequelize.sync({ alter: true })
   .catch((err) => {
     console.error('Unable to sync the database:', err);
   });
+
