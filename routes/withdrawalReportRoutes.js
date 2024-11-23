@@ -10,6 +10,75 @@ const xlsx = require('xlsx');
 const upload = multer({ dest: 'uploads/' });
 
 // Bulk Upload Endpoint
+// router.post('/bulk-upload', upload.single('file'), async (req, res) => {
+//   try {
+//     const file = req.file;
+
+//     if (!file) {
+//       return res.status(400).json({ message: 'Please upload an Excel file.' });
+//     }
+
+//     // Read the uploaded file
+//     const workbook = xlsx.readFile(file.path);
+//     const sheetName = workbook.SheetNames[0];
+//     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+//     if (sheetData.length === 0) {
+//       return res.status(400).json({ message: 'No valid data found in the file.' });
+//     }
+
+//     console.log('Parsed Data:', sheetData);
+
+//     // Validate and process each row
+//     const results = [];
+//     for (const entry of sheetData) {
+//       const { user_id, amount, bank, branch_id, remark } = entry;
+
+//       // Check for missing fields
+//       if (!user_id || !amount || !bank || !branch_id) {
+//         results.push({ user_id: user_id || 'N/A', status: 'Skipped', reason: 'Missing required fields' });
+//         continue;
+//       }
+
+//       // Check for duplicate entries in the database
+//       const existingEntry = await WithdrawalReportModel.findOne({
+//         where: { user_id, amount, bank, branch_id },
+//       });
+
+//       if (existingEntry) {
+//         results.push({ user_id, status: 'Skipped', reason: 'Duplicate entry' });
+//         continue;
+//       }
+
+//       // Insert new entry into the database
+//       await WithdrawalReportModel.create({
+//         user_id,
+//         amount,
+//         bank,
+//         branch_id,
+//         remark: remark || '',
+//         date: new Date(),
+//       });
+
+//       results.push({ user_id, status: 'Added' });
+//     }
+
+//     res.status(201).json({
+//       message: 'Bulk upload processed successfully.',
+//       results,
+//     });
+//   } catch (error) {
+//     console.error('Error processing file:', error);
+//     return res.status(500).json({ message: 'Error processing file.', error });
+//   }
+// });
+
+const parseExcelDate = (excelDate) => {
+  // Convert Excel numeric date to JavaScript Date
+  const parsedDate = new Date((excelDate - 25569) * 86400 * 1000);
+  return isNaN(parsedDate) ? null : parsedDate;
+};
+
 router.post('/bulk-upload', upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
@@ -29,20 +98,26 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
 
     console.log('Parsed Data:', sheetData);
 
-    // Validate and process each row
     const results = [];
     for (const entry of sheetData) {
-      const { user_id, amount, bank, branch_id, remark } = entry;
+      const { user_id, amount, bank, branch_id, remark, date } = entry;
 
-      // Check for missing fields
-      if (!user_id || !amount || !bank || !branch_id) {
+      // Validate required fields
+      if (!user_id || !amount || !bank || !branch_id || !date) {
         results.push({ user_id: user_id || 'N/A', status: 'Skipped', reason: 'Missing required fields' });
+        continue;
+      }
+
+      // Parse the date field
+      const parsedDate = typeof date === 'number' ? parseExcelDate(date) : new Date(date);
+      if (isNaN(parsedDate)) {
+        results.push({ user_id, status: 'Skipped', reason: 'Invalid date format' });
         continue;
       }
 
       // Check for duplicate entries in the database
       const existingEntry = await WithdrawalReportModel.findOne({
-        where: { user_id, amount, bank, branch_id },
+        where: { user_id, amount, bank, branch_id, date: parsedDate },
       });
 
       if (existingEntry) {
@@ -57,7 +132,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
         bank,
         branch_id,
         remark: remark || '',
-        date: new Date(),
+        date: parsedDate,
       });
 
       results.push({ user_id, status: 'Added' });
@@ -72,6 +147,8 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
     return res.status(500).json({ message: 'Error processing file.', error });
   }
 });
+
+
 
 
 
