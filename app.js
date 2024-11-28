@@ -41,7 +41,7 @@ app.use('/api/deposit', depositReconciliationRoutes);
 app.use('/api/interbank-transfer', interbankTransferRoutes);
 app.use('/api/expenses', expenseRoutes);
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8080;
 
 
 sequelize.sync({ alter: true })
