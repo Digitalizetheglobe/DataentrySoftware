@@ -1,10 +1,12 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const ExcelData2 = require('../models/ExcelData2'); 
-const WithdrawalReportModel = require('../models/WithdrawalReportModel'); 
+const ExcelData2 = require('../models/ExcelData2');
+const WithdrawalReportModel = require('../models/WithdrawalReportModel');
 const router = express.Router();
 
 // GET API for generating reconciliation report
+
+//http://api.cptechsolutions.com/api/withdrawal-report/entries/report?startDate=2024-12-03&endDate=2024-12-03&bank_name=Kotak+Mahindra+Bank
 router.get('/reconciliation-report', async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -34,9 +36,9 @@ router.get('/reconciliation-report', async (req, res) => {
                 },
             },
         });
-    // Calculate totals for each data set
-    const totalManualAmount = manualData.reduce((sum, entry) => sum + entry.amount, 0);
-    const totalExcelAmount = excelData.reduce((sum, entry) => sum + Math.abs(entry.withdraw), 0); // Use Math.abs if withdraw values are negative
+        // Calculate totals for each data set
+        const totalManualAmount = manualData.reduce((sum, entry) => sum + entry.amount, 0);
+        const totalExcelAmount = excelData.reduce((sum, entry) => sum + Math.abs(entry.withdraw), 0); // Use Math.abs if withdraw values are negative
 
         // Map data for easier comparison
         const excelMap = new Map();
@@ -56,7 +58,7 @@ router.get('/reconciliation-report', async (req, res) => {
             if (excelEntry) {
                 // Check if the withdrawal amounts match
                 const manualAmount = parseFloat(entry.amount);
-                const excelAmount = Math.abs(parseFloat(excelEntry.withdraw)); // Using absolute value to handle negatives
+                const excelAmount = Math.abs(parseFloat(excelEntry.withdraw));
 
                 if (manualAmount === excelAmount) {
                     matchedRecords.push({
@@ -112,7 +114,7 @@ router.get('/reconciliation-report', async (req, res) => {
             matchedRecords,
             discrepancies,
             totalMatched: matchedRecords.length,
-            totalDiscrepancies: discrepancies.length, 
+            totalDiscrepancies: discrepancies.length,
             totalManualAmount,
             totalExcelAmount,
         });

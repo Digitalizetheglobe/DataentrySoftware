@@ -1,8 +1,7 @@
-// models/DepositWithdrawModel.js
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-class DepositWithdrawModel extends Model {}
+class DepositWithdrawModel extends Model { }
 
 DepositWithdrawModel.init({
   player_id: {
