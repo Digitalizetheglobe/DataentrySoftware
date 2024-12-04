@@ -206,12 +206,63 @@ router.get('/entries', async (req, res) => {
 });
 
 // GET API to fetch entries filtered by bank and date range
+// router.get('/entries/report', async (req, res) => {
+//   try {
+//     const { startDate, endDate, bank_name } = req.query;
+
+//     // Validate required fields
+//     if (!startDate || !endDate || !bank_name) {
+//       return res.status(400).json({ message: 'Start date, end date, and bank name are required.' });
+//     }
+
+//     const start = new Date(startDate);
+//     const end = new Date(endDate);
+//     end.setHours(23, 59, 59, 999);
+
+//     // Use the correct column name 'bank' instead of 'bank_name'
+//     // const entries = await WithdrawalReportModel.findAll({
+//     //   where: {
+//     //     bank: {
+//     //       [Op.like]: `%${bank_name}%`,
+//     //     },
+//     //     createdAt: {
+//     //       [Op.between]: [start, end],
+//     //     },
+//     //   },
+//     //   order: [['createdAt', 'DESC']],
+//     // });
+//     //-------------------------------------
+//     // Change this in the /entries/report route
+//     const entries = await WithdrawalReportModel.findAll({
+//       where: {
+//         bank: {
+//           [Op.like]: `%${bank_name}%`,
+//         },
+//         date: { // Use 'date' instead of 'createdAt'
+//           [Op.between]: [start, end],
+//         },
+//       },
+//       order: [['date', 'DESC']], // Order by 'date' instead of 'createdAt'
+//     });
+
+
+//     // Calculate the total withdrawal amount
+//     const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
+
+//     res.status(200).json({ message: 'Report generated successfully.', data: entries, totalAmount });
+//   } catch (error) {
+//     console.error('Error generating report:', error);
+//     res.status(500).json({ message: 'Error generating report.', error: error.message });
+//   }
+// });
+
+
 router.get('/entries/report', async (req, res) => {
   try {
     const { startDate, endDate, bank_name } = req.query;
 
     // Validate required fields
-    if (!startDate || !endDate || !bank_name) {
+    if (!startDate || !endDate || !bank_name?.trim()) {
       return res.status(400).json({ message: 'Start date, end date, and bank name are required.' });
     }
 
@@ -219,34 +270,18 @@ router.get('/entries/report', async (req, res) => {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    // Use the correct column name 'bank' instead of 'bank_name'
-    // const entries = await WithdrawalReportModel.findAll({
-    //   where: {
-    //     bank: {
-    //       [Op.like]: `%${bank_name}%`,
-    //     },
-    //     createdAt: {
-    //       [Op.between]: [start, end],
-    //     },
-    //   },
-    //   order: [['createdAt', 'DESC']],
-    // });
-    //-------------------------------------
-    // Change this in the /entries/report route
     const entries = await WithdrawalReportModel.findAll({
       where: {
         bank: {
-          [Op.like]: `%${bank_name}%`,
+          [Op.like]: `%${bank_name.trim().toLowerCase()}%`,
         },
-        date: { // Use 'date' instead of 'createdAt'
+        date: {
           [Op.between]: [start, end],
         },
       },
-      order: [['date', 'DESC']], // Order by 'date' instead of 'createdAt'
+      order: [['date', 'DESC']],
     });
 
-
-    // Calculate the total withdrawal amount
     const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
 
     res.status(200).json({ message: 'Report generated successfully.', data: entries, totalAmount });
@@ -255,6 +290,7 @@ router.get('/entries/report', async (req, res) => {
     res.status(500).json({ message: 'Error generating report.', error: error.message });
   }
 });
+
 
 
 
