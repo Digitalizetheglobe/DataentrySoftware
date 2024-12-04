@@ -272,7 +272,7 @@ router.get('/entries/report', async (req, res) => {
 
     const entries = await WithdrawalReportModel.findAll({
       where: {
-        bank: {
+        bank: { // Column name matches the database schema
           [Op.like]: `%${bank_name.trim().toLowerCase()}%`,
         },
         date: {
@@ -284,13 +284,16 @@ router.get('/entries/report', async (req, res) => {
 
     const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
 
-    res.status(200).json({ message: 'Report generated successfully.', data: entries, totalAmount });
+    res.status(200).json({
+      message: 'Report generated successfully.',
+      data: entries,
+      totalAmount,
+    });
   } catch (error) {
     console.error('Error generating report:', error);
     res.status(500).json({ message: 'Error generating report.', error: error.message });
   }
 });
-
 
 
 
