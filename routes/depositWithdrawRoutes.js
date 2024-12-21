@@ -12,7 +12,7 @@ const upload = multer({ dest: 'uploads/' });
 
 router.post('/add-entry', async (req, res) => {
   try {
-    const { player_id, branch_id, utr_id, amount, bank_name, remark } = req.body;
+    const { player_id, branch_id, utr_id, amount, bank_name, remark, created_at } = req.body;
 
     // Validate required fields
     if (!player_id || !branch_id || !utr_id || !amount || !bank_name) {
@@ -25,6 +25,12 @@ router.post('/add-entry', async (req, res) => {
       return res.status(400).json({ message: 'UTR ID already exists. Please use a different UTR ID.' });
     }
 
+      // Convert transaction_date to Date object if necessary
+      const formattedDate = new Date(created_at);
+      if (isNaN(formattedDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid date format.' });
+      }
+  
     // Directly create the entry in the DepositWithdrawModel
     const newEntry = await DepositWithdrawModel.create({
       player_id,
@@ -33,7 +39,7 @@ router.post('/add-entry', async (req, res) => {
       amount,
       bank_name,
       remark: remark || '',
-      date: new Date(),
+      created_at: formattedDate,
     });
 
     res.status(201).json({ message: 'Entry added successfully.', data: newEntry });
@@ -191,7 +197,7 @@ router.get('/entries/report', async (req, res) => {
         bank_name: {
           [Op.like]: `%${bank_name}%`,
         },
-        createdAt: {
+        created_at: {
           [Op.between]: [start, end],
         },
       },

@@ -154,24 +154,56 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
 
 
 // POST API to add a new withdrawal entry
+// router.post('/add-entry', async (req, res) => {
+//   try {
+//     const { user_id, amount, bank, branch_id, remark } = req.body;
+
+//     // Validate required fields
+//     if (!user_id || !amount || !bank || !branch_id) {
+//       return res.status(400).json({ message: 'All fields are required.' });
+//     }
+
+
+//     // const newEntry = await WithdrawalReportModel.create({
+//     //   user_id,
+//     //   amount,
+//     //   bank,
+//     //   branch_id,
+//     //   remark: remark || '',
+//     //   date: new Date(),
+//     // });
+
+//     const newEntry = await WithdrawalReportModel.create({
+//       user_id,
+//       amount,
+//       bank,
+//       branch_id,
+//       remark: remark || '',
+//       date: new Date(), // Use the current date explicitly
+//     });
+    
+
+//     res.status(201).json({ message: 'Withdrawal entry added successfully.', data: newEntry });
+//   } catch (error) {
+//     console.error('Error adding withdrawal entry:', error);
+//     res.status(500).json({ message: 'Error adding withdrawal entry.', error });
+//   }
+// });
+
+// ---------------------------
+
+
 router.post('/add-entry', async (req, res) => {
   try {
-    const { user_id, amount, bank, branch_id, remark } = req.body;
+    const { user_id, amount, bank, branch_id, remark, date } = req.body;
 
     // Validate required fields
     if (!user_id || !amount || !bank || !branch_id) {
       return res.status(400).json({ message: 'All fields are required.' });
     }
 
-
-    // const newEntry = await WithdrawalReportModel.create({
-    //   user_id,
-    //   amount,
-    //   bank,
-    //   branch_id,
-    //   remark: remark || '',
-    //   date: new Date(),
-    // });
+    // Use the provided date or default to the current date
+    const entryDate = date ? new Date(date) : new Date();
 
     const newEntry = await WithdrawalReportModel.create({
       user_id,
@@ -179,9 +211,8 @@ router.post('/add-entry', async (req, res) => {
       bank,
       branch_id,
       remark: remark || '',
-      date: new Date(), // Use the current date explicitly
+      date: entryDate,
     });
-    
 
     res.status(201).json({ message: 'Withdrawal entry added successfully.', data: newEntry });
   } catch (error) {
@@ -189,6 +220,7 @@ router.post('/add-entry', async (req, res) => {
     res.status(500).json({ message: 'Error adding withdrawal entry.', error });
   }
 });
+
 
 // GET API to fetch all withdrawal entries
 router.get('/entries', async (req, res) => {
