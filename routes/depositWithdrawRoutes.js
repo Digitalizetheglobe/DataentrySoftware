@@ -154,7 +154,56 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
   }
 });
 
+//---------------------------------------
+router.put('/update-entry/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // Get the entry ID from the route parameter
+    const { player_id, branch_id, utr_id, amount, bank_name, remark, created_at } = req.body;
 
+    // Find the existing entry by ID
+    const existingEntry = await DepositWithdrawModel.findByPk(id);
+    if (!existingEntry) {
+      return res.status(404).json({ message: 'Entry not found.' });
+    }
+
+    // Check if the UTR ID already exists for another entry
+    if (utr_id && utr_id !== existingEntry.utr_id) {
+      const utrConflict = await DepositWithdrawModel.findOne({ where: { utr_id } });
+      if (utrConflict) {
+        return res.status(400).json({ message: 'UTR ID already exists. Please use a different UTR ID.' });
+      }
+    }
+
+    // Convert the created_at date if necessary
+    let formattedDate = existingEntry.created_at; // Default to existing date
+    if (created_at) {
+      formattedDate = new Date(created_at);
+      if (isNaN(formattedDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid date format.' });
+      }
+    }
+
+    // Update the entry with the new data
+    const updatedEntry = await existingEntry.update({
+      player_id: player_id || existingEntry.player_id,
+      branch_id: branch_id || existingEntry.branch_id,
+      utr_id: utr_id || existingEntry.utr_id,
+      amount: amount || existingEntry.amount,
+      bank_name: bank_name || existingEntry.bank_name,
+      remark: remark || existingEntry.remark,
+      created_at: formattedDate,
+    });
+
+    res.status(200).json({ message: 'Entry updated successfully.', data: updatedEntry });
+  } catch (error) {
+    console.error('Error updating entry:', error);
+    res.status(500).json({ message: 'Error updating entry.', error });
+  }
+});
+
+
+
+//---------------------------------------
 
 // GET API to fetch all entries
 router.get('/entries', async (req, res) => {

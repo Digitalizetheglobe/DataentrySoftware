@@ -221,6 +221,66 @@ router.post('/add-entry', async (req, res) => {
   }
 });
 
+//-------------------------------------------------
+
+// Update API
+
+router.put("/update-entry/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user_id, amount, bank, branch_id, remark, date } = req.body;
+
+    // Find the entry by ID
+    const entry = await WithdrawalReportModel.findByPk(id);
+    if (!entry) {
+      return res.status(404).json({ message: "Entry not found." });
+    }
+
+    // Update the entry with the new data
+    const updatedEntry = await entry.update({
+      user_id,
+      amount,
+      bank,
+      branch_id,
+      remark: remark || "",
+      date: date ? new Date(date) : entry.date,
+    });
+
+    res.status(200).json({
+      message: "Withdrawal entry updated successfully.",
+      data: updatedEntry,
+    });
+  } catch (error) {
+    console.error("Error updating withdrawal entry:", error);
+    res.status(500).json({ message: "Error updating withdrawal entry.", error });
+  }
+});
+
+//-----------------------------------------------------
+// Delete API
+
+router.delete("/delete-entry/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the entry by ID
+    const entry = await WithdrawalReportModel.findByPk(id);
+    if (!entry) {
+      return res.status(404).json({ message: "Entry not found." });
+    }
+
+    // Delete the entry
+    await entry.destroy();
+
+    res.status(200).json({ message: "Withdrawal entry deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting withdrawal entry:", error);
+    res.status(500).json({ message: "Error deleting withdrawal entry.", error });
+  }
+});
+
+//-------------------------------------------------------
+
 
 // GET API to fetch all withdrawal entries
 router.get('/entries', async (req, res) => {
