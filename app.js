@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors'); 
 const sequelize = require('./config/database');
 const authRoutes = require('./routes/auth');
-const transactionRoutes = require('./routes/transactions');
+// const transactionRoutes = require('./routes/transactions');
 const excelRoutes = require('./routes/excel');
 const MergedExcelData = require('./models/MergedExcelData'); 
 const UploadedExcelFile = require('./models/UploadedExcelFile'); 
@@ -17,6 +17,7 @@ const depositReconciliationRoutes = require('./routes/depositReconciliationRoute
 const branchRoutes = require('./routes/branch');
 const interbankTransferRoutes = require('./routes/interbankTransfer');
 const expenseRoutes = require('./routes/expenseRoutes');
+const admin = require('./routes/admin');
 const app = express();
 
 // app.use(cors({ origin: 'http://localhost:3000' }));
@@ -28,7 +29,7 @@ app.use('/api/branch', branchRoutes);
 // });
 // nwe
 app.use('/api/auth', authRoutes);
-app.use('/api/transactions', transactionRoutes);
+// app.use('/api/transactions', transactionRoutes);
 app.use('/api/excel', excelRoutes); 
 app.use('/api/users', userRoutes);
 app.use('/api/new-users', newUserRoutes); 
@@ -40,6 +41,7 @@ app.use('/api/withdrawal',reconciliationRoutes);
 app.use('/api/deposit', depositReconciliationRoutes);
 app.use('/api/interbank-transfer', interbankTransferRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/admin', admin);
 
 const PORT = process.env.PORT || 8080;
 
