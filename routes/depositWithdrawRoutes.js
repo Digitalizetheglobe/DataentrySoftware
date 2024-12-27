@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require ('express');
 const DepositWithdrawModel = require('../models/DepositWithdrawModel');
 const PlayerModel = require('../models/PlayerModel');
 const multer = require('multer');
@@ -12,7 +12,7 @@ const upload = multer({ dest: 'uploads/' });
 
 router.post('/add-entry', async (req, res) => {
   try {
-    const { player_id, branch_id, utr_id, amount, bank_name, remark, created_at } = req.body;
+    const { player_id, branch_id, utr_id, amount, bank_name, remark, created_at, bonus } = req.body;
 
     // Validate required fields
     if (!player_id || !branch_id || !utr_id || !amount || !bank_name) {
@@ -40,6 +40,7 @@ router.post('/add-entry', async (req, res) => {
       bank_name,
       remark: remark || '',
       created_at: formattedDate,
+      bonus: bonus || null,
     });
 
     res.status(201).json({ message: 'Entry added successfully.', data: newEntry });

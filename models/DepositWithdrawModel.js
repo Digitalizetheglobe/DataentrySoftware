@@ -31,7 +31,11 @@ DepositWithdrawModel.init({
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
-  }
+  }, bonus: {
+    type: DataTypes.INTEGER, 
+    allowNull: true, 
+    defaultValue: null, 
+  },
 }, {
   sequelize,
   modelName: 'DepositWithdraw',
