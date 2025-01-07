@@ -1,4 +1,3 @@
-// routes/adminRoutes.js
 const express = require('express');
 const DepositWithdrawModel = require('../models/DepositWithdrawModel');
 const router = express.Router();

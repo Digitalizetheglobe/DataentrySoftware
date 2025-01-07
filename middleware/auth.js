@@ -7,7 +7,7 @@ const authenticateAdmin = (req, res, next) => {
 
   try {
     // Decode the token directly without splitting
-    const decoded = jwt.verify(token, JWT_SECRET);  // No need for .split(' ')[1]
+    const decoded = jwt.verify(token, JWT_SECRET);  
     
     // Check the role from the decoded token
     if (decoded.role !== 'admin') {

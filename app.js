@@ -18,6 +18,9 @@ const branchRoutes = require('./routes/branch');
 const interbankTransferRoutes = require('./routes/interbankTransfer');
 const expenseRoutes = require('./routes/expenseRoutes');
 const admin = require('./routes/admin');
+const bankstatement = require ('./routes/bankstatement.js');
+const allbankstatement = require ('./routes/allbankstatement.js');
+
 const app = express();
 
 // app.use(cors({ origin: 'http://localhost:3000' }));
@@ -42,6 +45,8 @@ app.use('/api/deposit', depositReconciliationRoutes);
 app.use('/api/interbank-transfer', interbankTransferRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/admin', admin);
+app.use('/api', bankstatement);
+app.use('/api', allbankstatement);
 
 const PORT = process.env.PORT || 8080;
 
