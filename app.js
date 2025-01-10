@@ -48,7 +48,7 @@ app.use('/admin', admin);
 app.use('/api', bankstatement);
 app.use('/api', allbankstatement);
 
-const PORT = process.env.PORT || 8084;
+const PORT = process.env.PORT || 8085;
 //8080
 
 sequelize.sync({ alter: true })
